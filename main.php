@@ -13,24 +13,42 @@ $falscheswort ="langes wort";
 if(isset($_GET["wort"])) {
 	$falscheswort =$_GET["wort"];
 }
-require_once 'verbindungsaufbau.php';
-$vorhanden = $mysqli->query("SELECT id FROM `unileipzig-en`,`unileipzig-de` WHERE wort='$falscheswort'");
-if($vorhanden->num_rows ==1) {
-	echo "<p><strong>Das Wort ist richtig</strong></p>";
-	exit;
+$tabellen = array();
+if(isset($_GET["ul-de"])) {
+	$tabellen[] = "unileipzig-de";
 }
-$ergebnis = $mysqli->query("SELECT wort FROM `unileipzig-en`,`unileipzig-de`");
-// echo "<table border='1'>\n";
+if(isset($_GET["ul-en"])) {
+	$tabellen[] = "unileipzig-en";
+}
+if(isset($_GET["nm"])) {
+	$tabellen[] = "netzmafia";
+}
+require_once 'verbindungsaufbau.php';
+foreach ($tabellen as $tabelle) {
+	$vorhanden = $mysqli->query("SELECT id FROM `$tabelle` WHERE wort='$falscheswort'");
+	if($vorhanden->num_rows == 1) {
+		echo "<p><strong>Das Wort ist richtig</strong></p>";
+		exit;
+	}
+	$vorhanden->close();
+}
 $arrayahnlich =array(); // leeres Array erstellen
-while ($wort = $ergebnis->fetch_array()) { 
-	$ahnlichkeit=levenshtein($falscheswort, $wort[0]);
-//	echo "<tr><td>$wort[0]</td><td>$ahnlichkeit</td></tr>";
-	$arrayahnlich[$wort[0]] = $ahnlichkeit;
+
+foreach ($tabellen as $tabelle) {
+	$ergebnis = $mysqli->query("SELECT wort FROM `$tabelle`");
+//	echo "<table border='1'>\n";
+	while ($wort = $ergebnis->fetch_array()) { 
+		$ahnlichkeit=similar_text($falscheswort, $wort[0]);
+//		echo "<tr><td>$wort[0]</td><td>$ahnlichkeit</td></tr>";
+		$arrayahnlich[$wort[0]] = $ahnlichkeit;
+	}
+	$ergebnis->close();
+//	echo "</table>";
 }
 asort($arrayahnlich);
 $top = array_keys($arrayahnlich);
 echo "$top[0],$top[1],$top[2],$top[3]";
-
+print_r($top);
 ?>
 </table>
 </body>
